@@ -1,0 +1,18 @@
+{
+  "name": "perimeter-security",
+  "version": "1.0.0",
+  "description": "AI Perimeter Surveillance System with real phone camera and QR code linking",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "surveillance",
+    "perimeter-security",
+    "ai",
+    "webrtc",
+    "computer-vision"
+  ],
+  "author": "",
+  "license": "ISC"
+}

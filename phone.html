@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Perimeter Mobile Tactical Camera</title>
+  <meta name="description" content="Wireless mobile tactical camera transmitter for AI Perimeter Security surveillance system." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <!-- PeerJS CDN for WebRTC peer-to-peer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #060b14;
+      --bg-surface: #0a1020;
+      --border-accent: #1a2744;
+      --green-500: #22c55e;
+      --green-400: #4ade80;
+      --blue-500: #0ea5e9;
+      --red-500: #ef4444;
+      --yellow-400: #fbbf24;
+      --font-ui: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg-primary); color: #f8fafc;
+      font-family: var(--font-ui); font-size: 14px;
+      user-select: none; -webkit-user-select: none;
+    }
+    #phone-app {
+      display: flex; flex-direction: column; height: 100%; position: relative;
+    }
+    /* HEADER */
+    .p-header {
+      flex-shrink: 0; height: 48px; background: rgba(10, 16, 32, 0.95);
+      border-bottom: 1px solid var(--border-accent);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 14px; z-index: 20;
+    }
+    .p-brand {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .p-logo {
+      width: 24px; height: 24px; background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    }
+    .p-logo svg { width: 14px; height: 14px; fill: white; }
+    .p-title { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .p-status {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;
+      font-family: var(--font-mono); letter-spacing: .05em;
+    }
+    .st-connecting { background: rgba(251,191,36,0.12); color: var(--yellow-400); border: 1px solid rgba(251,191,36,0.3); }
+    .st-live { background: rgba(34,197,94,0.12); color: var(--green-400); border: 1px solid rgba(34,197,94,0.3); }
+    .st-error { background: rgba(239,68,68,0.12); color: var(--red-500); border: 1px solid rgba(239,68,68,0.3); }
+    .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pdot 1.5s infinite; }
+    @keyframes pdot { 0%,100%{ opacity: 1; transform: scale(1); } 50%{ opacity: .4; transform: scale(0.8); } }
+
+    /* VIEWPORT */
+    .viewport-container {
+      flex: 1; position: relative; background: #000; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    video#camera-feed {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    /* Tactical HUD Overlay */
+    .hud-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      display: flex; flex-direction: column; justify-content: space-between;
+      padding: 14px;
+    }
+    .hud-scanlines {
+      position: absolute; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
+    }
+    .hud-corners {
+      position: absolute; inset: 12px; pointer-events: none;
+    }
+    .hud-c {
+      position: absolute; width: 16px; height: 16px; border-color: rgba(14,165,233,0.8); border-style: solid;
+    }
+    .hud-c.tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+    .hud-c.tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+    .hud-c.bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+    .hud-c.br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+    .hud-reticle {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 60px; height: 60px; border: 1px dashed rgba(14,165,233,0.4); border-radius: 50%;
+    }
+    .hud-reticle::before {
+      content: ''; position: absolute; top: 50%; left: -8px; right: -8px; height: 1px;
+      background: rgba(14,165,233,0.5); transform: translateY(-50%);
+    }
+    .hud-reticle::after {
+      content: ''; position: absolute; left: 50%; top: -8px; bottom: -8px; width: 1px;
+      background: rgba(14,165,233,0.5); transform: translateX(-50%);
+    }
+
+    .hud-top-data {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      font-family: var(--font-mono); font-size: 9px; color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 3px #000;
+    }
+    .rec-flag {
+      display: flex; align-items: center; gap: 4px; color: var(--red-500); font-weight: 700;
+    }
+    .rec-flag::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--red-500);
+      animation: pdot 1s infinite;
+    }
+    .hud-bottom-data {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      font-family: var(--font-mono); font-size: 9px; color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 3px #000;
+    }
+
+    /* PERMISSION / START PROMPT */
+    #start-screen {
+      position: absolute; inset: 0; background: rgba(6,11,20,0.94);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px; text-align: center; z-index: 50;
+    }
+    .start-icon {
+      width: 64px; height: 64px; border-radius: 50%; background: rgba(14,165,233,0.15);
+      border: 1px solid var(--blue-500); display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px;
+    }
+    .start-icon svg { width: 32px; height: 32px; fill: var(--blue-500); }
+    .start-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .start-desc { font-size: 12px; color: #94a3b8; max-width: 280px; margin-bottom: 20px; line-height: 1.4; }
+    .btn-action {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: white; font-weight: 600; font-size: 13px; border: none;
+      padding: 12px 24px; border-radius: 8px; cursor: pointer;
+      box-shadow: 0 4px 15px rgba(14,165,233,0.35); transition: 0.2s;
+    }
+    .btn-action:active { transform: scale(0.96); }
+
+    /* FOOTER CONTROLS */
+    .p-footer {
+      flex-shrink: 0; height: 64px; background: rgba(10, 16, 32, 0.95);
+      border-top: 1px solid var(--border-accent);
+      display: flex; align-items: center; justify-content: space-around;
+      padding: 0 16px; z-index: 20;
+    }
+    .ctrl-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: none; border: none; color: #94a3b8; font-size: 9px;
+      font-weight: 600; text-transform: uppercase; cursor: pointer;
+    }
+    .ctrl-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .ctrl-btn.active { color: var(--blue-500); }
+    .ctrl-btn:active { color: white; transform: scale(0.92); }
+
+    /* Hidden processing canvas */
+    canvas#capture-canvas { display: none; }
+  </style>
+</head>
+<body>
+<div id="phone-app">
+  <!-- HEADER -->
+  <div class="p-header">
+    <div class="p-brand">
+      <div class="p-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 14l-3-3 1.41-1.41L11 12.17l4.59-4.58L17 9l-6 6z"/></svg>
+      </div>
+      <span class="p-title">TACTICAL CAM</span>
+    </div>
+    <div class="p-status st-connecting" id="stream-status">
+      <div class="pulse-dot"></div>
+      <span id="status-text">CONNECTING</span>
+    </div>
+  </div>
+
+  <!-- VIEWPORT -->
+  <div class="viewport-container">
+    <video id="camera-feed" autoplay playsinline muted></video>
+    <div class="hud-scanlines"></div>
+    <div class="hud-corners">
+      <div class="hud-c tl"></div>
+      <div class="hud-c tr"></div>
+      <div class="hud-c bl"></div>
+      <div class="hud-c br"></div>
+    </div>
+    <div class="hud-reticle"></div>
+
+    <div class="hud-overlay">
+      <div class="hud-top-data">
+        <div>
+          <div style="color:var(--blue-500);font-weight:700" id="hud-cam-id">CAM-MOBILE</div>
+          <div id="hud-res">STREAMING</div>
+        </div>
+        <div class="rec-flag">TX LIVE</div>
+      </div>
+      <div class="hud-bottom-data">
+        <div id="hud-telemetry">FPS: -- | PING: --ms</div>
+        <div id="hud-time">00:00:00</div>
+      </div>
+    </div>
+
+    <!-- START PERMISSION SCREEN -->
+    <div id="start-screen">
+      <div class="start-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+      </div>
+      <div class="start-title">Link Camera to Perimeter Command</div>
+      <div class="start-desc">Broadcast your smartphone's camera directly to the AI Perimeter Surveillance dashboard in real time.</div>
+      <button class="btn-action" onclick="startCameraBroadcast()">Start Transmission</button>
+    </div>
+  </div>
+
+  <!-- FOOTER CONTROLS -->
+  <div class="p-footer">
+    <button class="ctrl-btn" onclick="toggleCameraFacing()" id="btn-flip">
+      <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5c-1.1 0-2 .9-2 2v4h2V7zm10 10H7v-3l-4 4 4 4v-3h12c1.1 0 2-.9 2-2v-4h-2v4z"/></svg>
+      <span>Flip</span>
+    </button>
+    <button class="ctrl-btn" onclick="toggleTorch()" id="btn-torch">
+      <svg viewBox="0 0 24 24"><path d="M9 2v3h6V2H9zm-2 5v14c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V7H7zm8 14H9V9h6v12z"/></svg>
+      <span>Torch</span>
+    </button>
+    <button class="ctrl-btn" onclick="toggleResolution()" id="btn-res">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM8 17h2v-4h2v-2H8v6zm6-6h-2v6h4v-2h-2v-4z"/></svg>
+      <span id="lbl-res">720p</span>
+    </button>
+  </div>
+</div>
+
+<canvas id="capture-canvas"></canvas>
+
+<script>
+// Parse Room ID from URL
+const urlParams = new URLSearchParams(window.location.search);
+const roomId = urlParams.get('room') || 'ps-room-1';
+const peerTargetId = urlParams.get('peer');
+const assignedSlot = urlParams.get('slot') || 'CAM-01';
+
+document.getElementById('hud-cam-id').textContent = assignedSlot + ' / MOBILE';
+
+let currentFacing = 'environment';
+let mediaStream = null;
+let videoTrack = null;
+let currentRes = '720p';
+let torchOn = false;
+let ws = null;
+let peer = null;
+let peerCall = null;
+let frameInterval = null;
+let lastFrameTime = performance.now();
+let fpsCounter = 0;
+let actualFps = 0;
+
+// Clock
+setInterval(() => {
+  document.getElementById('hud-time').textContent = new Date().toLocaleTimeString('en-GB');
+}, 1000);
+
+// Camera constraints
+function getConstraints() {
+  const resolutions = {
+    '480p': { width: { ideal: 640 }, height: { ideal: 480 } },
+    '720p': { width: { ideal: 1280 }, height: { ideal: 720 } },
+    '1080p': { width: { ideal: 1920 }, height: { ideal: 1080 } }
+  };
+  return {
+    video: {
+      facingMode: currentFacing,
+      ...resolutions[currentRes]
+    },
+    audio: false
+  };
+}
+
+async function startCameraBroadcast() {
+  const startScreen = document.getElementById('start-screen');
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia(getConstraints());
+    const video = document.getElementById('camera-feed');
+    video.srcObject = mediaStream;
+    videoTrack = mediaStream.getVideoTracks()[0];
+
+    const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+    document.getElementById('hud-res').textContent = `${settings.width || 1280}x${settings.height || 720}`;
+
+    startScreen.style.display = 'none';
+
+    // Start WebSocket Relay & WebRTC
+    initWebSocket();
+    initPeerJS();
+    startFrameRelay();
+  } catch (err) {
+    console.error('Camera access error:', err);
+    alert('Unable to access camera: ' + (err.message || err.name) + '\n\nPlease ensure camera permissions are granted.');
+  }
+}
+
+// 1. WebSocket Relay (Instant & guaranteed fallback)
+function initWebSocket() {
+  const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${location.host}`;
+
+  try {
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      console.log('WebSocket connected to command server');
+      ws.send(JSON.stringify({
+        type: 'join',
+        room: roomId,
+        role: 'phone',
+        slot: assignedSlot
+      }));
+      setStatus('live', 'TRANSMITTING');
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected. Retrying...');
+      setStatus('connecting', 'RECONNECTING');
+      setTimeout(initWebSocket, 2500);
+    };
+
+    ws.onerror = (e) => {
+      console.warn('WebSocket error:', e);
+    };
+  } catch (e) {
+    console.error('WS init failed:', e);
+  }
+}
+
+// 2. WebRTC PeerJS (Ultra-low latency direct video stream)
+function initPeerJS() {
+  if (typeof Peer === 'undefined') return;
+  try {
+    peer = new Peer();
+    peer.on('open', (id) => {
+      console.log('PeerJS Phone ID:', id);
+      // Notify desktop via WebSocket of our peer ID
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'signal',
+          room: roomId,
+          action: 'phone-peer-ready',
+          peerId: id
+        }));
+      }
+
+      // If desktop peer was passed in query, call it directly
+      if (peerTargetId && mediaStream) {
+        peerCall = peer.call(peerTargetId, mediaStream);
+        peerCall.on('stream', () => {});
+      }
+    });
+
+    peer.on('call', (call) => {
+      if (mediaStream) {
+        call.answer(mediaStream);
+      }
+    });
+  } catch (err) {
+    console.warn('PeerJS init error:', err);
+  }
+}
+
+// 3. Canvas Frame Relay via WebSocket
+function startFrameRelay() {
+  const video = document.getElementById('camera-feed');
+  const canvas = document.getElementById('capture-canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = 480;
+  canvas.height = 270;
+
+  if (frameInterval) clearInterval(frameInterval);
+
+  // Send frames at ~20 FPS
+  frameInterval = setInterval(() => {
+    if (!video.videoWidth || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+
+    ws.send(JSON.stringify({
+      type: 'camera-frame',
+      room: roomId,
+      slot: assignedSlot,
+      frame: dataUrl,
+      timestamp: Date.now()
+    }));
+
+    // FPS calculation
+    fpsCounter++;
+    const now = performance.now();
+    if (now - lastFrameTime >= 1000) {
+      actualFps = fpsCounter;
+      fpsCounter = 0;
+      lastFrameTime = now;
+      document.getElementById('hud-telemetry').textContent = `FPS: ${actualFps} | ${currentRes.toUpperCase()}`;
+    }
+  }, 50);
+}
+
+// UI Controls
+async function toggleCameraFacing() {
+  currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(t => t.stop());
+  }
+  await startCameraBroadcast();
+}
+
+async function toggleTorch() {
+  if (!videoTrack) return;
+  try {
+    torchOn = !torchOn;
+    await videoTrack.applyConstraints({
+      advanced: [{ torch: torchOn }]
+    });
+    document.getElementById('btn-torch').classList.toggle('active', torchOn);
+  } catch (e) {
+    alert('Flashlight not supported on this device/camera.');
+  }
+}
+
+async function toggleResolution() {
+  const map = { '480p': '720p', '720p': '1080p', '1080p': '480p' };
+  currentRes = map[currentRes];
+  document.getElementById('lbl-res').textContent = currentRes;
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(t => t.stop());
+    await startCameraBroadcast();
+  }
+}
+
+function setStatus(cls, text) {
+  const el = document.getElementById('stream-status');
+  const txt = document.getElementById('status-text');
+  el.className = 'p-status st-' + cls;
+  txt.textContent = text;
+}
+</script>
+</body>
+</html>

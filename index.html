@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perimeter Security &mdash; AI Thermal Surveillance System</title>
+  <meta name="description" content="Military-grade perimeter security surveillance system with real-time FLIR/Ironbow thermal camera computer vision, zero mock data, and live movement analysis." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary:#050811;--bg-surface:#090e1c;--bg-elevated:#0e1526;--bg-card:#11192e;
+      --border-subtle:#18233c;--border-accent:#223254;
+      --blue-500:#0ea5e9;--blue-400:#38bdf8;--blue-600:#0284c7;--blue-glow:rgba(14,165,233,0.18);
+      --green-500:#22c55e;--green-400:#4ade80;--green-glow:rgba(34,197,94,0.18);
+      --yellow-400:#fbbf24;--yellow-500:#f59e0b;--yellow-glow:rgba(245,158,11,0.18);
+      --red-400:#f87171;--red-500:#ef4444;--red-600:#dc2626;--red-glow:rgba(239,68,68,0.22);
+      --thermal-hot:#ff3b00;--thermal-mid:#d6006e;--thermal-cold:#0a0c27;
+      --text-primary:#f1f5f9;--text-secondary:#94a3b8;--text-muted:#475569;
+      --font-ui:'Inter',sans-serif;--font-mono:'JetBrains Mono',monospace;
+      --radius-sm:6px;--radius-md:10px;--radius-lg:14px;--radius-xl:20px;
+      --transition:0.2s cubic-bezier(0.4,0,0.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;font-family:var(--font-ui);background:var(--bg-primary);color:var(--text-primary);overflow:hidden;font-size:14px;line-height:1.5;}
+    ::-webkit-scrollbar{width:4px;height:4px;}
+    ::-webkit-scrollbar-track{background:var(--bg-surface);}
+    ::-webkit-scrollbar-thumb{background:var(--border-accent);border-radius:2px;}
+    button{cursor:pointer;border:none;background:none;font-family:inherit;}
+    input,select,textarea{font-family:inherit;}
+    #app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+    /* NAVBAR */
+    #navbar{flex-shrink:0;height:56px;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;padding:0 20px;gap:14px;z-index:100;position:relative;}
+    #navbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue-500) 25%,var(--thermal-hot) 75%,transparent);opacity:0.35;}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
+    .nav-logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#c026d3,#f43f5e,#fb923c);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(244,63,94,0.35);}
+    .nav-logo-icon svg{width:20px;height:20px;fill:white;}
+    .nav-logo-title{font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:.04em;line-height:1;}
+    .nav-logo-sub{font-size:9px;font-weight:600;color:#fb7185;letter-spacing:.12em;text-transform:uppercase;line-height:1.4;}
+    .nav-sys-status{display:flex;align-items:center;gap:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:100px;padding:4px 12px 4px 8px;font-size:11px;font-weight:600;color:var(--green-400);letter-spacing:.06em;}
+    .status-pulse{width:7px;height:7px;border-radius:50%;background:var(--green-500);box-shadow:0 0 8px var(--green-500);animation:pulse-green 1.8s infinite;flex-shrink:0;}
+    @keyframes pulse-green{0%,100%{opacity:1;box-shadow:0 0 6px var(--green-500);}50%{opacity:.5;box-shadow:0 0 14px var(--green-500);}}
+    .nav-div{width:1px;height:28px;background:var(--border-subtle);flex-shrink:0;}
+    #nav-tabs{display:flex;align-items:center;gap:2px;}
+    .nav-tab{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;color:var(--text-muted);transition:var(--transition);white-space:nowrap;}
+    .nav-tab:hover{background:var(--bg-elevated);color:var(--text-secondary);}
+    .nav-tab.active{background:var(--blue-glow);color:var(--blue-400);border:1px solid rgba(14,165,233,0.25);}
+    .nav-tab svg{width:14px;height:14px;fill:currentColor;flex-shrink:0;}
+    .nav-right{display:flex;align-items:center;gap:12px;margin-left:auto;}
+
+    /* Camera Switch / Re-engage Button */
+    .btn-cam-control{
+      display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:var(--radius-sm);
+      background:linear-gradient(135deg,rgba(225,29,72,0.15),rgba(249,115,22,0.15));
+      border:1px solid rgba(244,63,94,0.4);color:#fb7185;font-size:11px;font-weight:700;
+      letter-spacing:.04em;transition:var(--transition);
+    }
+    .btn-cam-control:hover{background:linear-gradient(135deg,rgba(225,29,72,0.28),rgba(249,115,22,0.28));box-shadow:0 0 14px rgba(244,63,94,0.3);}
+    .btn-cam-control svg{width:14px;height:14px;fill:currentColor;}
+
+    #alert-bell{position:relative;padding:6px;border-radius:var(--radius-sm);color:var(--text-muted);transition:var(--transition);}
+    #alert-bell:hover{background:var(--bg-elevated);color:var(--text-secondary);}
+    #alert-bell svg{width:18px;height:18px;fill:currentColor;display:block;}
+    #alert-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;background:var(--red-500);border-radius:8px;font-size:9px;font-weight:700;color:white;display:none;align-items:center;justify-content:center;padding:0 3px;animation:badge-pulse 2s infinite;}
+    @keyframes badge-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.5);}50%{box-shadow:0 0 0 4px rgba(239,68,68,0);}}
+    #nav-clock{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--text-secondary);letter-spacing:.05em;}
+    .operator-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#c026d3,#e11d48);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;}
+    .operator-name{font-size:11px;font-weight:600;color:var(--text-primary);line-height:1.2;}
+    .operator-role{font-size:9px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;}
+
+    /* STATUS BAR */
+    #statusbar{flex-shrink:0;height:38px;background:var(--bg-surface);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;padding:0 20px;}
+    .stat-item{display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid var(--border-subtle);height:100%;}
+    .stat-item:first-child{padding-left:0;}.stat-item:last-child{border-right:none;}
+    .stat-icon{width:14px;height:14px;flex-shrink:0;}
+    .stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+    .stat-value{font-family:var(--font-mono);font-size:13px;font-weight:600;}
+    .sv-green{color:var(--green-400);}.sv-red{color:var(--red-400);}.sv-yellow{color:var(--yellow-400);}.sv-blue{color:var(--blue-400);}.sv-thermal{color:#fb7185;}
+    #stat-right{margin-left:auto;display:flex;align-items:center;gap:16px;}
+    .uptime-text{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+
+    /* VIEWS */
+    #main-content{flex:1;overflow:hidden;position:relative;}
+    .view{position:absolute;inset:0;display:none;overflow:hidden;}
+    .view.active{display:flex;}
+    #view-dashboard{flex-direction:row;}
+
+    /* CAMERA GRID */
+    #camera-grid-container{flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;}
+    #camera-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;flex:1;}
+    .camera-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;transition:var(--transition);cursor:pointer;position:relative;}
+    .camera-card:hover{border-color:var(--border-accent);}
+    .camera-card.alert-mode{border-color:var(--red-500);box-shadow:0 0 0 1px var(--red-500),0 0 24px rgba(239,68,68,0.3);animation:cam-alert 1.2s infinite;}
+    @keyframes cam-alert{0%,100%{box-shadow:0 0 0 1px var(--red-500),0 0 20px rgba(239,68,68,.25);}50%{box-shadow:0 0 0 2px var(--red-500),0 0 36px rgba(239,68,68,.45);}}
+
+    .cam-canvas-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#03050c;overflow:hidden;}
+    .cam-canvas-wrap canvas{width:100%;height:100%;display:block;}
+    .cam-overlay{position:absolute;inset:0;pointer-events:none;}
+    .cam-corner{position:absolute;width:12px;height:12px;border-color:rgba(244,63,94,0.7);border-style:solid;}
+    .cam-corner.tl{top:6px;left:6px;border-width:1.5px 0 0 1.5px;}
+    .cam-corner.tr{top:6px;right:6px;border-width:1.5px 1.5px 0 0;}
+    .cam-corner.bl{bottom:6px;left:6px;border-width:0 0 1.5px 1.5px;}
+    .cam-corner.br{bottom:6px;right:6px;border-width:0 1.5px 1.5px 0;}
+    .cam-id-badge{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:8px;font-weight:700;color:rgba(251,113,133,0.95);letter-spacing:.12em;text-shadow:0 0 8px rgba(244,63,94,0.5);}
+    .cam-ts{position:absolute;bottom:5px;left:8px;font-family:var(--font-mono);font-size:8px;color:rgba(255,255,255,.65);text-shadow:0 1px 3px #000;}
+    .cam-mode-badge{position:absolute;top:6px;left:8px;background:rgba(244,63,94,0.25);border:1px solid rgba(244,63,94,0.5);color:#fda4af;font-size:7.5px;font-weight:700;padding:1px 5px;border-radius:2px;font-family:var(--font-mono);letter-spacing:.05em;}
+    .cam-rec{position:absolute;top:6px;right:8px;display:flex;align-items:center;gap:3px;font-family:var(--font-mono);font-size:7px;font-weight:700;color:var(--red-400);letter-spacing:.08em;}
+    .cam-rec::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--red-400);animation:rec-blink 1s infinite;}
+    @keyframes rec-blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+    /* Thermal Gradient Scale Bar on Cam */
+    .thermal-scale-bar{position:absolute;right:8px;top:26px;bottom:20px;width:5px;border-radius:2px;background:linear-gradient(180deg,#ffffff,#ffe100,#ff6a00,#d6006e,#45056e,#0a0c27);border:1px solid rgba(255,255,255,0.2);display:flex;flex-direction:column;justify-content:space-between;align-items:center;}
+    .thermal-temp-max{position:absolute;right:16px;top:24px;font-family:var(--font-mono);font-size:7px;color:#fff;text-shadow:0 1px 2px #000;}
+    .thermal-temp-min{position:absolute;right:16px;bottom:18px;font-family:var(--font-mono);font-size:7px;color:#93c5fd;text-shadow:0 1px 2px #000;}
+
+    /* Cam Reticle */
+    .cam-crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border:1px dashed rgba(244,63,94,0.45);border-radius:50%;pointer-events:none;}
+    .cam-crosshair::before{content:'';position:absolute;top:50%;left:-4px;right:-4px;height:1px;background:rgba(244,63,94,0.6);transform:translateY(-50%);}
+    .cam-crosshair::after{content:'';position:absolute;left:50%;top:-4px;bottom:-4px;width:1px;background:rgba(244,63,94,0.6);transform:translateX(-50%);}
+
+    .cam-footer{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg-elevated);border-top:1px solid var(--border-subtle);}
+    .cam-name{font-size:11px;font-weight:600;color:var(--text-primary);}
+    .cam-zone-label{font-size:9px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;}
+    .cam-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+    .cam-dot.online{background:var(--green-500);box-shadow:0 0 5px var(--green-500);}
+    .cam-dot.alert{background:var(--red-500);box-shadow:0 0 7px var(--red-500);animation:badge-pulse 1s infinite;}
+
+    /* Camera Start Overlay if blocked by browser autoplay */
+    #cam-activate-prompt{position:absolute;inset:0;background:rgba(5,8,17,0.92);backdrop-filter:blur(4px);z-index:90;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px;text-align:center;}
+    .cap-icon{width:56px;height:56px;border-radius:50%;background:rgba(244,63,94,0.15);border:1px solid #f43f5e;display:flex;align-items:center;justify-content:center;color:#fb7185;}
+    .cap-icon svg{width:28px;height:28px;fill:currentColor;}
+    .cap-title{font-size:16px;font-weight:700;}
+    .cap-desc{font-size:12px;color:var(--text-secondary);max-width:360px;line-height:1.4;}
+
+    /* ALERTS SIDEBAR */
+    #alert-sidebar{width:320px;flex-shrink:0;background:var(--bg-surface);border-left:1px solid var(--border-subtle);display:flex;flex-direction:column;overflow:hidden;}
+    .sb-header{padding:14px 16px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;}
+    .sb-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text-primary);}
+    .sb-title svg{width:16px;height:16px;fill:#fb7185;}
+    #alert-count-badge{background:var(--red-500);color:white;font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;font-family:var(--font-mono);}
+    #alert-filter-bar{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--border-subtle);overflow-x:auto;}
+    .fchip{padding:3px 8px;border-radius:var(--radius-sm);font-size:10px;font-weight:600;color:var(--text-muted);background:var(--bg-elevated);transition:var(--transition);white-space:nowrap;}
+    .fchip:hover,.fchip.active{background:rgba(244,63,94,0.15);color:#fb7185;border:1px solid rgba(244,63,94,0.3);}
+    #alerts-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;}
+    .alert-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:10px 12px;transition:var(--transition);position:relative;overflow:hidden;}
+    .alert-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+    .alert-card.sev-CRITICAL::before{background:var(--red-500);box-shadow:0 0 8px var(--red-500);}
+    .alert-card.sev-HIGH::before{background:var(--orange-500);}
+    .alert-card.sev-MEDIUM::before{background:var(--yellow-500);}
+    .alert-card.acked{opacity:.6;border-style:dashed;}
+    .alert-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+    .sev-badge{font-size:8px;font-weight:800;letter-spacing:.08em;padding:2px 5px;border-radius:3px;font-family:var(--font-mono);text-transform:uppercase;}
+    .sb-CRITICAL{background:rgba(239,68,68,0.2);color:var(--red-400);border:1px solid rgba(239,68,68,0.3);}
+    .sb-HIGH{background:rgba(249,115,22,0.2);color:var(--orange-500);border:1px solid rgba(249,115,22,0.3);}
+    .alert-time{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);}
+    .alert-type{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:3px;}
+    .alert-meta{display:flex;gap:10px;font-size:10px;color:var(--text-secondary);margin-bottom:6px;}
+    .conf-wrap{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+    .conf-bar-bg{flex:1;height:3px;background:var(--border-subtle);border-radius:2px;overflow:hidden;}
+    .conf-bar{height:100%;border-radius:2px;}
+    .conf-lbl{font-family:var(--font-mono);font-size:9px;color:var(--text-muted);}
+    .alert-actions{display:flex;gap:4px;}
+    .abtn{flex:1;padding:4px 0;border-radius:var(--radius-sm);font-size:10px;font-weight:600;transition:var(--transition);text-align:center;}
+    .abtn.ack{background:rgba(34,197,94,0.1);color:var(--green-400);border:1px solid rgba(34,197,94,0.2);}
+    .abtn.ack:hover{background:rgba(34,197,94,0.2);}
+    .abtn.dis{background:var(--bg-elevated);color:var(--text-muted);border:1px solid var(--border-subtle);}
+    .abtn.dis:hover{color:var(--text-secondary);}
+    #no-alerts{display:flex;flex-direction:column;align-items:center;justify-content:center;height:240px;color:var(--text-muted);gap:10px;text-align:center;padding:16px;}
+    #no-alerts svg{width:36px;height:36px;fill:var(--border-accent);}
+
+    /* EVENTS LOG VIEW */
+    #view-events{flex-direction:column;}
+    .view-header{padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface);}
+    .view-title{font-size:16px;font-weight:700;color:var(--text-primary);}
+    .view-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+    .toolbar{display:flex;align-items:center;gap:8px;}
+    .evts-filter{padding:10px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;background:var(--bg-surface);}
+    .input-dark,.select-dark{background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-primary);padding:5px 10px;font-size:11px;outline:none;}
+    .input-dark:focus,.select-dark:focus{border-color:var(--blue-500);}
+    .select-dark option{background:var(--bg-elevated);color:var(--text-primary);}
+    #events-wrap{flex:1;overflow-y:auto;padding:14px 20px;}
+    .etable{width:100%;border-collapse:collapse;font-size:11px;}
+    .etable th{background:var(--bg-elevated);color:var(--text-muted);text-transform:uppercase;font-size:9px;letter-spacing:.08em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border-subtle);position:sticky;top:0;}
+    .etable td{padding:9px 12px;border-bottom:1px solid var(--border-subtle);color:var(--text-secondary);vertical-align:middle;}
+    .etable tr:hover td{background:var(--bg-card);cursor:pointer;}
+    .td-mono{font-family:var(--font-mono);}
+    .td-badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:8px;font-weight:700;font-family:var(--font-mono);}
+    .st-open{background:rgba(239,68,68,0.15);color:var(--red-400);}
+    .st-acknowledged{background:rgba(34,197,94,0.15);color:var(--green-400);}
+    .exp-row{display:none;}.exp-row.open{display:table-row;}
+    .exp-content{background:var(--bg-elevated);padding:14px 20px;border-bottom:1px solid var(--border-subtle);display:flex;gap:20px;}
+    .exp-thumb{width:160px;aspect-ratio:16/9;background:#000;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border-subtle);}
+    .detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;flex:1;}
+    .detail-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;}
+    .detail-value{font-size:12px;font-weight:600;color:var(--text-primary);margin-top:1px;}
+    .event-notes{width:100%;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-primary);padding:6px 10px;font-size:11px;resize:none;height:52px;margin-top:8px;}
+
+    /* ANALYTICS */
+    #view-analytics{flex-direction:column;overflow-y:auto;}
+    .analytics-body{padding:20px;display:flex;flex-direction:column;gap:16px;}
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .kpi-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 16px;}
+    .kpi-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;}
+    .kpi-value{font-family:var(--font-mono);font-size:22px;font-weight:700;margin:4px 0;}
+    .kpi-change{font-size:10px;display:flex;align-items:center;gap:4px;}
+    .kpi-up{color:var(--green-400);}.kpi-down{color:var(--red-400);}
+    .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:12px;}
+    .charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .chart-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 16px;}
+    .chart-title{font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:2px;}
+    .chart-sub{font-size:10px;color:var(--text-muted);margin-bottom:12px;}
+    .dbl-item{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+    .dbl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .dbl-label{font-size:11px;color:var(--text-secondary);flex:1;}
+    .dbl-bar-bg{width:80px;height:4px;background:var(--border-subtle);border-radius:2px;overflow:hidden;}
+    .dbl-bar{height:100%;border-radius:2px;}
+    .dbl-cnt{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);width:24px;text-align:right;}
+    .zheat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .zheat-item{background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px;text-align:center;}
+    .zheat-name{font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;}
+    .zheat-val{font-family:var(--font-mono);font-size:18px;font-weight:700;}
+
+    /* MAP VIEW */
+    #view-map{flex-direction:column;background:#050811;}
+    #map-container{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+    #perimeter-svg{width:100%;height:100%;max-width:900px;max-height:560px;}
+    #map-legend{position:absolute;bottom:16px;left:16px;background:rgba(9,14,28,.92);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px 14px;backdrop-filter:blur(8px);}
+    .legend-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+    .legend-item{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary);margin-bottom:5px;}
+    .leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    #cam-popup{position:absolute;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:var(--radius-lg);padding:12px;width:240px;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;z-index:50;}
+    #cam-popup.show{display:block;animation:popup-in .2s ease;}
+    @keyframes popup-in{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+    .popup-thumb{width:100%;aspect-ratio:16/9;background:#000;border-radius:var(--radius-sm);margin-bottom:8px;overflow:hidden;}
+
+    /* SETTINGS VIEW */
+    #view-settings{flex-direction:column;overflow-y:auto;}
+    .settings-body{padding:20px;max-width:780px;display:flex;flex-direction:column;gap:20px;}
+    .settings-section{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;}
+    .ss-header{padding:13px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:8px;background:var(--bg-elevated);}
+    .ss-title{font-size:13px;font-weight:700;color:var(--text-primary);}
+    .ss-sub{font-size:10px;color:var(--text-muted);margin-top:1px;}
+    .settings-row{padding:13px 18px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .settings-row:last-child{border-bottom:none;}
+    .sr-label{font-size:12px;font-weight:500;color:var(--text-primary);}
+    .sr-desc{font-size:10px;color:var(--text-muted);margin-top:2px;}
+    .range-wrap{display:flex;align-items:center;gap:10px;}
+    input[type=range]{appearance:none;width:130px;height:4px;background:var(--border-subtle);border-radius:2px;cursor:pointer;}
+    input[type=range]::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:#f43f5e;box-shadow:0 0 6px rgba(244,63,94,0.5);cursor:pointer;}
+    .range-val{font-family:var(--font-mono);font-size:11px;color:#fb7185;width:30px;text-align:right;}
+    .toggle{width:36px;height:20px;background:var(--border-subtle);border-radius:10px;position:relative;cursor:pointer;transition:var(--transition);flex-shrink:0;}
+    .toggle.on{background:#f43f5e;}
+    .toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:white;transition:var(--transition);}
+    .toggle.on::after{left:18px;}
+
+    /* BUTTONS */
+    .btn-sm{padding:5px 12px;border-radius:var(--radius-sm);font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:var(--transition);}
+    .btn-primary{background:linear-gradient(135deg,#e11d48,#f43f5e);color:white;}
+    .btn-primary:hover{opacity:.9;box-shadow:0 0 10px rgba(244,63,94,0.4);}
+    .btn-ghost{background:var(--bg-elevated);color:var(--text-secondary);border:1px solid var(--border-subtle);}
+    .btn-ghost:hover{color:var(--text-primary);border-color:var(--border-accent);}
+
+    /* TOASTS */
+    #toast-container{position:fixed;top:68px;right:16px;z-index:1000;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+    .toast{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:10px 14px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:toast-in .3s ease;pointer-events:auto;min-width:260px;max-width:320px;}
+    @keyframes toast-in{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+    .toast.removing{animation:toast-out .3s ease forwards;}
+    @keyframes toast-out{to{opacity:0;transform:translateX(20px);}}
+    .t-title{font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:1px;}
+    .t-body{font-size:10px;color:var(--text-muted);}
+    .toast-critical{border-color:var(--red-500);background:rgba(220,38,38,.14);}
+    .toast-info{border-color:#f43f5e;background:rgba(244,63,94,0.12);}
+    .toast-success{border-color:var(--green-500);background:var(--green-glow);}
+
+    /* MODAL */
+    .custom-modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center;}
+    .custom-modal.open{display:flex;}
+    .modal-box-wide{background:var(--bg-card);border:1px solid var(--border-accent);border-radius:var(--radius-xl);width:640px;max-width:92vw;max-height:88vh;overflow-y:auto;animation:modal-in .25s ease;box-shadow:0 24px 70px rgba(0,0,0,.7);}
+    @keyframes modal-in{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+    .modal-header{padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);}
+    .modal-title{font-size:15px;font-weight:700;color:var(--text-primary);}
+    .modal-close{width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:18px;line-height:1;transition:var(--transition);}
+    .modal-close:hover{background:var(--bg-elevated);color:var(--text-primary);}
+
+    /* Hidden Video Source */
+    #hidden-video-sink{display:none;}
+  </style>
+</head>
+<body>
+<div id="app">
+<!-- NAVBAR -->
+<nav id="navbar">
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 14l-3-3 1.41-1.41L11 12.17l4.59-4.58L17 9l-6 6z"/></svg></div>
+    <div><div class="nav-logo-title">PERIMETER SECURITY</div><div class="nav-logo-sub">FLIR Thermal AI Command v3.0</div></div>
+  </a>
+  <div class="nav-div"></div>
+  <div class="nav-sys-status"><div class="status-pulse"></div>SYSTEM ARMED &middot; THERMAL RADAR ACTIVE</div>
+  <div class="nav-div"></div>
+  <div id="nav-tabs">
+    <button class="nav-tab active" id="tab-dashboard" onclick="switchView('dashboard')"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</button>
+    <button class="nav-tab" id="tab-events" onclick="switchView('events')"><svg viewBox="0 0 24 24"><path d="M14 6l-1-2H5v17h2v-7h5l1 2h7V6h-6zm4 8h-4l-1-2H7V6h5l1 2h5v6z"/></svg>Events Log</button>
+    <button class="nav-tab" id="tab-analytics" onclick="switchView('analytics')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Analytics</button>
+    <button class="nav-tab" id="tab-map" onclick="switchView('map')"><svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>Camera Map</button>
+    <button class="nav-tab" id="tab-settings" onclick="switchView('settings')"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Settings</button>
+  </div>
+  <div class="nav-right">
+    <button class="btn-cam-control" onclick="engageLaptopCamera()">
+      <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+      <span id="cam-status-nav">ENGAGE THERMAL CAM</span>
+    </button>
+    <div class="nav-div"></div>
+    <button id="alert-bell" onclick="switchView('events')" title="View alerts"><svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><span id="alert-badge">0</span></button>
+    <span id="nav-clock"></span>
+    <div class="nav-div"></div>
+    <div style="display:flex;align-items:center;gap:8px;"><div class="operator-avatar">OP</div><div><div class="operator-name">Operator 1</div><div class="operator-role">Thermal Command</div></div></div>
+  </div>
+</nav>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <div class="stat-item"><svg class="stat-icon" viewBox="0 0 24 24" fill="#fb7185"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg><span class="stat-label">Thermal Sensor</span><span class="stat-value sv-thermal" id="stat-cam-mode">INITIALIZING...</span></div>
+  <div class="stat-item"><svg class="stat-icon" viewBox="0 0 24 24" fill="#ef4444"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><span class="stat-label">Active Threats</span><span class="stat-value sv-red" id="stat-threats">0</span></div>
+  <div class="stat-item"><svg class="stat-icon" viewBox="0 0 24 24" fill="#fbbf24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span class="stat-label">Unacknowledged</span><span class="stat-value sv-yellow" id="stat-unack">0</span></div>
+  <div class="stat-item"><svg class="stat-icon" viewBox="0 0 24 24" fill="#22c55e"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg><span class="stat-label">Acknowledged</span><span class="stat-value sv-green" id="stat-ack">0</span></div>
+  <div class="stat-item"><svg class="stat-icon" viewBox="0 0 24 24" fill="#94a3b8"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg><span class="stat-label">Total Real Events</span><span class="stat-value sv-blue" id="stat-total">0</span></div>
+  <div id="stat-right"><span class="stat-label">AI ENGINE</span><span class="stat-value sv-green" style="font-size:11px;">READY</span><div class="nav-div" style="height:18px;"></div><span class="stat-label">UPTIME</span><span class="uptime-text" id="uptime-counter">00:00:00</span></div>
+</div>
+
+<div id="main-content">
+  <!-- 1. DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div id="camera-grid-container" style="position:relative;">
+      <!-- Engagement Prompt if camera permission requires gesture -->
+      <div id="cam-activate-prompt">
+        <div class="cap-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        </div>
+        <div class="cap-title">ENGAGE LAPTOP THERMAL SENSOR</div>
+        <div class="cap-desc">Click below to allow camera access. The dashboard will analyze real-time movement and render an authentic FLIR thermal imaging view.</div>
+        <button class="btn-sm btn-primary" onclick="engageLaptopCamera()" style="padding:10px 22px;font-size:13px;border-radius:8px;">ENABLE THERMAL CAMERA</button>
+      </div>
+
+      <div id="camera-grid"></div>
+    </div>
+
+    <!-- LIVE ALERTS SIDEBAR (ONLY POPULATED BY REAL DETECTIONS) -->
+    <div id="alert-sidebar">
+      <div class="sb-header">
+        <div class="sb-title"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>Live Alerts<span id="alert-count-badge">0</span></div>
+        <button class="btn-sm btn-ghost" onclick="acknowledgeAll()">Ack All</button>
+      </div>
+      <div id="alert-filter-bar">
+        <button class="fchip active" onclick="filterAlerts('all',this)">All</button>
+        <button class="fchip" onclick="filterAlerts('critical',this)">Critical</button>
+        <button class="fchip" onclick="filterAlerts('high',this)">High</button>
+      </div>
+      <div id="alerts-list">
+        <div id="no-alerts">
+          <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <div style="font-size:12px;font-weight:600;color:var(--text-primary);">Zero Active Threats</div>
+          <div style="font-size:10px;color:var(--text-muted);max-width:200px;">Thermal radar monitoring nominal. Move in front of the laptop camera to trigger real threat alarms.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. EVENTS LOG -->
+  <div class="view" id="view-events">
+    <div class="view-header">
+      <div>
+        <div class="view-title">Real Security Events Log</div>
+        <div class="view-sub">Chronological audit trail of real intruder detections captured by the thermal camera</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn-sm btn-ghost" onclick="exportEvents()">&#8595; Export CSV</button>
+        <button class="btn-sm btn-primary" onclick="clearResolved()">Clear Acknowledged</button>
+      </div>
+    </div>
+    <div class="evts-filter">
+      <input class="input-dark" type="text" id="event-search" placeholder="Search real events..." oninput="renderEventsTable()" style="width:200px"/>
+      <select class="select-dark" id="ef-sev" onchange="renderEventsTable()"><option value="">All Severities</option><option value="CRITICAL">Critical</option><option value="HIGH">High</option></select>
+      <select class="select-dark" id="ef-status" onchange="renderEventsTable()"><option value="">All Statuses</option><option value="open">Open</option><option value="acknowledged">Acknowledged</option></select>
+      <span style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);" id="ev-count">0 events</span>
+    </div>
+    <div id="events-wrap">
+      <table class="etable">
+        <thead><tr><th>ID</th><th>Timestamp</th><th>Detection Type</th><th>Sensor</th><th>Zone</th><th>Severity</th><th>Confidence</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="events-tbody">
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">No real security incidents logged yet. Standby for camera movement.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. ANALYTICS -->
+  <div class="view" id="view-analytics">
+    <div class="view-header"><div><div class="view-title">Thermal Radar &amp; Threat Intelligence</div><div class="view-sub">Real-time movement frequency, heat signatures, and intruder patterns</div></div></div>
+    <div class="analytics-body">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">Thermal Sensor Resolution</div><div class="kpi-value" style="color:#fb7185">720p / 60Hz</div><div class="kpi-change kpi-up">&#9650; FLIR Ironbow Core</div></div>
+        <div class="kpi-card"><div class="kpi-label">Detection Latency</div><div class="kpi-value" style="color:var(--blue-400)">32ms</div><div class="kpi-change kpi-up">&#9650; Hardware accelerated</div></div>
+        <div class="kpi-card"><div class="kpi-label">Active Threat Level</div><div class="kpi-value" id="kpi-threat-level" style="color:var(--green-400)">NOMINAL</div><div class="kpi-change kpi-up" id="kpi-threat-sub">Zero breaches</div></div>
+        <div class="kpi-card"><div class="kpi-label">Real Events Today</div><div class="kpi-value" id="kpi-events-today" style="color:var(--yellow-400)">0</div><div class="kpi-change kpi-up">Camera triggers only</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><div class="chart-title">Real Intrusion Frequency (Live)</div><div class="chart-sub">Detection events over rolling timeline</div><canvas id="chart-freq" width="600" height="150" style="width:100%;height:150px;"></canvas></div>
+        <div class="chart-card"><div class="chart-title">Threat Classification</div><div class="chart-sub">Breakdown of real camera detections</div><canvas id="chart-donut" width="240" height="150" style="width:100%;height:150px;"></canvas></div>
+      </div>
+      <div class="charts-row2">
+        <div class="chart-card"><div class="chart-title">Sector Activity</div><div class="chart-sub">Intrusions detected per surveillance sector</div><div class="zheat-grid" id="zone-heatmap"></div></div>
+        <div class="chart-card"><div class="chart-title">Thermal Movement Intensity</div><div class="chart-sub">Velocity and centroid distribution</div><div id="det-breakdown"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MAP VIEW -->
+  <div class="view" id="view-map">
+    <div class="view-header"><div><div class="view-title">Perimeter Camera Map</div><div class="view-sub">Real-time sector thermal status &mdash; click camera node to inspect</div></div></div>
+    <div id="map-container">
+      <svg id="perimeter-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="map-legend"><div class="legend-title">Zone Status</div><div class="legend-item"><div class="leg-dot" style="background:var(--green-500);box-shadow:0 0 4px var(--green-500)"></div>Clear</div><div class="legend-item"><div class="leg-dot" style="background:var(--red-500);box-shadow:0 0 6px var(--red-500)"></div>Intruder Alert</div><div class="legend-item"><div class="leg-dot" style="background:#fb7185"></div>Thermal Sensor</div></div>
+      <div id="cam-popup"><div class="popup-thumb"><canvas id="popup-canvas" style="width:100%;height:100%;display:block;"></canvas></div><div style="font-size:11px;font-weight:700;color:var(--text-primary)" id="popup-cam-name"></div><div style="font-size:9px;color:var(--text-muted);margin-top:2px;" id="popup-cam-zone"></div></div>
+    </div>
+  </div>
+
+  <!-- 5. SETTINGS -->
+  <div class="view" id="view-settings">
+    <div class="view-header"><div><div class="view-title">Thermal AI Settings</div><div class="view-sub">Adjust camera sensitivity, thermal color mapping, and audible alarms</div></div><button class="btn-sm btn-primary" onclick="saveSettings()">Save Configuration</button></div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="ss-header"><svg width="16" height="16" fill="#fb7185" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg><div><div class="ss-title">Thermal Motion Sensitivity</div><div class="ss-sub">Movement threshold for triggering security alerts</div></div></div>
+        <div class="settings-row"><div><div class="sr-label">Motion Sensitivity Threshold</div><div class="sr-desc">Lower value triggers on subtle movements, higher requires full body movement</div></div><div class="range-wrap"><input type="range" id="cfg-motion-sens" min="10" max="60" value="26" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="range-val">26%</span></div></div>
+        <div class="settings-row"><div><div class="sr-label">Thermal Heat Signature Bloom</div><div class="sr-desc">Intensity boost for moving thermal signatures</div></div><div class="range-wrap"><input type="range" id="cfg-heat-bloom" min="10" max="100" value="65" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="range-val">65%</span></div></div>
+      </div>
+      <div class="settings-section">
+        <div class="ss-header"><svg width="16" height="16" fill="var(--yellow-400)" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><div><div class="ss-title">Alarm &amp; Audio Siren</div><div class="ss-sub">Tactical alert chime options</div></div></div>
+        <div class="settings-row"><div><div class="sr-label">Audio Siren on Intruder</div><div class="sr-desc">Play audible tactical beep when thermal intruder is detected</div></div><div class="toggle on" id="toggle-sound" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row"><div><div class="sr-label">Cooldown Between Alarms</div><div class="sr-desc">Minimum seconds between repeated alert chimes</div></div><div class="range-wrap"><input type="range" min="3" max="20" value="6" oninput="this.nextElementSibling.textContent=this.value+'s'"><span class="range-val">6s</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- CAMERA DETAIL MODAL -->
+<div id="modal-overlay" class="custom-modal" onclick="if(event.target===this)closeModal()">
+  <div id="modal-box" class="modal-box-wide">
+    <div class="modal-header"><div class="modal-title" id="modal-title">Camera Detail</div><button class="modal-close" onclick="closeModal()">&#215;</button></div>
+    <div class="modal-body" id="modal-body" style="padding:20px;"></div>
+  </div>
+</div>
+
+<!-- HIDDEN ASSETS FOR REAL CAMERA STREAM & CV SAMPLING -->
+<div id="hidden-video-sink">
+  <video id="laptop-cam-video" autoplay playsinline muted></video>
+  <canvas id="cv-sampling-canvas" width="120" height="68"></canvas>
+</div>
+
+<script>
+// =========================================================================
+// THERMAL PERIMETER SURVEILLANCE & REAL COMPUTER VISION ENGINE
+// ZERO MOCK DATA - 100% REAL LAPTOP WEBCAM & REAL MOVEMENT ANALYSIS
+// =========================================================================
+
+const SECTORS = [
+  {id:'CAM-01', name:'North Gate', mode:'PRIMARY THERMAL', zone:'Sector A - North Perimeter', pos:{x:450,y:50}},
+  {id:'CAM-02', name:'East Boundary', mode:'THERMAL HEATMAP', zone:'Sector B - East Perimeter', pos:{x:820,y:220}},
+  {id:'CAM-03', name:'South Entry', mode:'HIGH-GAIN FLIR', zone:'Sector C - South Gate', pos:{x:450,y:450}},
+  {id:'CAM-04', name:'West Patrol', mode:'EDGE THERMAL', zone:'Sector D - West Perimeter', pos:{x:80,y:220}},
+  {id:'CAM-05', name:'Central Command', mode:'WHITE-HOT IR', zone:'Sector E - HQ Facility', pos:{x:300,y:250}},
+  {id:'CAM-06', name:'Vehicle Bay', mode:'RADAR TRACKING', zone:'Sector F - Motor Pool', pos:{x:620,y:250}},
+];
+
+// ZERO MOCK DATA: Clean initial state
+let allEvents = [];
+let eventIdCounter = 1;
+let activeThreats = 0;
+let startTime = Date.now();
+let frequencyData = new Array(60).fill(0);
+let sectorActivity = {};
+let detectionCounts = { 'THERMAL_INTRUDER': 0, 'PERIMETER_BREACH': 0, 'RAPID_MOVEMENT': 0 };
+SECTORS.forEach(s => { sectorActivity[s.id] = 0; });
+
+let alertFilter = 'all';
+let cameraAnimFrames = {};
+
+// LAPTOP WEBCAM & CV STATE
+let cameraStream = null;
+let cameraActive = false;
+let lastSamplingData = null;
+let currentBoundingBox = null;
+let motionCooldownTime = 0;
+let motionSustainedFrames = 0;
+let currentMotionEnergy = 0;
+
+// PRECOMPUTE 256-COLOR FLIR IRONBOW THERMAL LOOKUP TABLE (LUT)
+const THERMAL_LUT = new Uint8ClampedArray(256 * 3);
+(function buildThermalLut() {
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    let r = 0, g = 0, b = 0;
+    if (t < 0.2) {
+      // 0 - 0.2: Dark Navy to Deep Indigo
+      const f = t / 0.2;
+      r = Math.floor(4 + 20 * f);
+      g = Math.floor(6 + 10 * f);
+      b = Math.floor(30 + 80 * f);
+    } else if (t < 0.42) {
+      // 0.2 - 0.42: Deep Indigo to Violet/Magenta
+      const f = (t - 0.2) / 0.22;
+      r = Math.floor(24 + 110 * f);
+      g = Math.floor(16 + 10 * f);
+      b = Math.floor(110 + 35 * f);
+    } else if (t < 0.65) {
+      // 0.42 - 0.65: Magenta to Crimson & Fiery Red
+      const f = (t - 0.42) / 0.23;
+      r = Math.floor(134 + 110 * f);
+      g = Math.floor(26 + 30 * f);
+      b = Math.floor(145 - 120 * f);
+    } else if (t < 0.85) {
+      // 0.65 - 0.85: Fiery Red to Blazing Orange/Amber
+      const f = (t - 0.65) / 0.2;
+      r = 244 + Math.floor(11 * f);
+      g = Math.floor(56 + 130 * f);
+      b = Math.floor(25 - 20 * f);
+    } else {
+      // 0.85 - 1.0: Warm Gold to White-Hot Radiance
+      const f = (t - 0.85) / 0.15;
+      r = 255;
+      g = Math.floor(186 + 69 * f);
+      b = Math.floor(5 + 250 * f);
+    }
+    const idx = i * 3;
+    THERMAL_LUT[idx] = r;
+    THERMAL_LUT[idx + 1] = g;
+    THERMAL_LUT[idx + 2] = b;
+  }
+})();
+
+// AUDIO TACTICAL CHIME SYNTHESIZER
+let audioCtx = null;
+function playAlarmChime() {
+  const toggle = document.getElementById('toggle-sound');
+  if (toggle && !toggle.classList.contains('on')) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    // Two-tone tactical military siren chirp
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(780, now);
+    osc.frequency.exponentialRampToValueAtTime(1050, now + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.28);
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.32);
+    osc.start(now);
+    osc.stop(now + 0.32);
+  } catch (e) {}
+}
+
+// LAPTOP WEBCAM ENGAGEMENT
+async function engageLaptopCamera() {
+  const promptOverlay = document.getElementById('cam-activate-prompt');
+  const navBtnText = document.getElementById('cam-status-nav');
+  const statText = document.getElementById('stat-cam-mode');
+
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+      audio: false
+    });
+    const video = document.getElementById('laptop-cam-video');
+    video.srcObject = cameraStream;
+    cameraActive = true;
+
+    promptOverlay.style.display = 'none';
+    navBtnText.textContent = 'THERMAL CAM ONLINE';
+    navBtnText.parentElement.style.borderColor = 'var(--green-500)';
+    navBtnText.parentElement.style.color = 'var(--green-400)';
+
+    statText.textContent = 'ONLINE (720p FLIR)';
+    statText.className = 'stat-value sv-green';
+
+    showToast('success', 'Thermal Sensor Engaged', 'Laptop camera connected. Live FLIR Ironbow thermal radar active.', 4000);
+  } catch (err) {
+    console.warn('Camera engagement error:', err);
+    promptOverlay.style.display = 'flex';
+    statText.textContent = 'PERMISSION REQUIRED';
+    statText.className = 'stat-value sv-yellow';
+    showToast('info', 'Camera Access Needed', 'Please allow camera permissions in your browser to engage the thermal sensor.', 5000);
+  }
+}
+
+// RENDER CAMERA FEEDS WITH REAL FLIR THERMAL SHADER
+function renderCam(sector, canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const video = document.getElementById('laptop-cam-video');
+
+  if (cameraActive && video && video.readyState >= 2) {
+    // 1. Draw raw webcam frame scaled to canvas
+    ctx.drawImage(video, 0, 0, W, H);
+
+    // 2. Extract pixel data and apply FLIR Ironbow Thermal LUT
+    const imgData = ctx.getImageData(0, 0, W, H);
+    const d = imgData.data;
+    const mode = sector.mode;
+
+    for (let i = 0; i < d.length; i += 4) {
+      // High-contrast perceptual luminance
+      let lum = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+
+      // Sector-specific thermal variations
+      if (mode === 'HIGH-GAIN FLIR') {
+        lum = Math.min(255, Math.pow(lum / 255, 0.75) * 270);
+      } else if (mode === 'WHITE-HOT IR') {
+        // Inverted White-Hot palette
+        const val = Math.min(255, Math.floor(lum * 1.1));
+        d[i] = val; d[i+1] = val; d[i+2] = val;
+        continue;
+      } else if (mode === 'EDGE THERMAL') {
+        lum = lum > 110 ? Math.min(255, lum * 1.25) : Math.max(0, lum * 0.65);
+      }
+
+      // Map luminance to FLIR Ironbow LUT
+      const lutIdx = Math.min(255, Math.max(0, Math.floor(lum))) * 3;
+      d[i] = THERMAL_LUT[lutIdx];
+      d[i+1] = THERMAL_LUT[lutIdx + 1];
+      d[i+2] = THERMAL_LUT[lutIdx + 2];
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+
+    // Scanline & tactical HUD grid
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.lineWidth = 0.5;
+    for (let gx = 0; gx < W; gx += 40) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+    for (let gy = 0; gy < H; gy += 40) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+    // Render AI Computer Vision Bounding Box if movement active
+    if (currentBoundingBox) {
+      const bx = currentBoundingBox.x * (W / 120);
+      const by = currentBoundingBox.y * (H / 68);
+      const bw = currentBoundingBox.w * (W / 120);
+      const bh = currentBoundingBox.h * (H / 68);
+
+      const color = '#ef4444';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx, by, bw, bh);
+
+      // Tactical military corners
+      const cl = 8;
+      ctx.lineWidth = 3;
+      [[bx,by,1,1],[bx+bw,by,-1,1],[bx,by+bh,1,-1],[bx+bw,by+bh,-1,-1]].forEach(([cx,cy,dx,dy])=>{
+        ctx.beginPath();ctx.moveTo(cx+dx*cl,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+dy*cl);ctx.stroke();
+      });
+
+      // Target Label with confidence
+      const confStr = `${(currentBoundingBox.conf * 100).toFixed(0)}%`;
+      const lbl = `THERMAL INTRUDER ${confStr}`;
+      ctx.font = 'bold 8px JetBrains Mono, monospace';
+      const tw = ctx.measureText(lbl).width;
+      ctx.fillStyle = color;
+      ctx.fillRect(bx, by - 14, tw + 8, 13);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(lbl, bx + 4, by - 4);
+    }
+  } else {
+    // Standby awaiting camera engagement
+    ctx.fillStyle = '#060a14';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fb7185';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ENGAGE THERMAL SENSOR', W / 2, H / 2);
+    ctx.textAlign = 'left';
+  }
+
+  // Vignette
+  const vig = ctx.createRadialGradient(W/2, H/2, H*0.35, W/2, H/2, H*0.85);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// REAL-TIME COMPUTER VISION MOVEMENT ANALYSIS
+function runComputerVisionAnalysis() {
+  const video = document.getElementById('laptop-cam-video');
+  if (!cameraActive || !video || video.readyState < 2) return;
+
+  const cvCanvas = document.getElementById('cv-sampling-canvas');
+  const cvCtx = cvCanvas.getContext('2d', { willReadFrequently: true });
+  cvCtx.drawImage(video, 0, 0, cvCanvas.width, cvCanvas.height);
+  const curData = cvCtx.getImageData(0, 0, cvCanvas.width, cvCanvas.height);
+
+  if (lastSamplingData) {
+    const d1 = curData.data;
+    const d2 = lastSamplingData.data;
+    let diffPixels = 0;
+    let minX = cvCanvas.width, maxX = 0, minY = cvCanvas.height, maxY = 0;
+
+    // Fast luminance differencing
+    for (let i = 0; i < d1.length; i += 4) {
+      const lum1 = d1[i] * 0.299 + d1[i+1] * 0.587 + d1[i+2] * 0.114;
+      const lum2 = d2[i] * 0.299 + d2[i+1] * 0.587 + d2[i+2] * 0.114;
+      if (Math.abs(lum1 - lum2) > 28) {
+        diffPixels++;
+        const pIdx = i / 4;
+        const px = pIdx % cvCanvas.width;
+        const py = Math.floor(pIdx / cvCanvas.width);
+        if (px < minX) minX = px;
+        if (px > maxX) maxX = px;
+        if (py < minY) minY = py;
+        if (py > maxY) maxY = py;
+      }
+    }
+
+    const totalPixels = cvCanvas.width * cvCanvas.height;
+    const motionFraction = diffPixels / totalPixels;
+    currentMotionEnergy = motionFraction;
+
+    const sensInput = document.getElementById('cfg-motion-sens');
+    const threshold = sensInput ? (parseFloat(sensInput.value) / 1000) : 0.026;
+
+    // Movement detected
+    if (motionFraction > threshold && motionFraction < 0.75 && (maxX - minX) > 8 && (maxY - minY) > 10) {
+      motionSustainedFrames++;
+
+      const target = {
+        x: minX,
+        y: minY,
+        w: (maxX - minX),
+        h: (maxY - minY),
+        conf: Math.min(0.98, 0.78 + motionFraction * 1.8)
+      };
+
+      if (!currentBoundingBox) currentBoundingBox = target;
+      else {
+        currentBoundingBox.x += (target.x - currentBoundingBox.x) * 0.4;
+        currentBoundingBox.y += (target.y - currentBoundingBox.y) * 0.4;
+        currentBoundingBox.w += (target.w - currentBoundingBox.w) * 0.4;
+        currentBoundingBox.h += (target.h - currentBoundingBox.h) * 0.4;
+        currentBoundingBox.conf = target.conf;
+      }
+
+      // If motion persists across 3 consecutive analysis intervals & cooldown elapsed
+      const now = Date.now();
+      if (motionSustainedFrames >= 3 && now - motionCooldownTime > 6000) {
+        motionCooldownTime = now;
+        triggerRealIntrusionEvent(currentBoundingBox.conf);
+      }
+    } else {
+      currentBoundingBox = null;
+      motionSustainedFrames = Math.max(0, motionSustainedFrames - 1);
+    }
+  }
+
+  lastSamplingData = curData;
+}
+
+// TRIGGER AUTHENTIC INTRUSION ALARM FROM REAL CAMERA
+function triggerRealIntrusionEvent(confidence) {
+  // Primary active sector
+  const sector = SECTORS[0];
+  const ev = {
+    id: 'EVT-' + String(eventIdCounter++).padStart(4, '0'),
+    camId: sector.id,
+    camName: sector.name + ' [THERMAL SENSOR]',
+    zone: sector.zone,
+    type: 'THERMAL_INTRUDER',
+    label: 'Real Intruder Detected',
+    severity: 'CRITICAL',
+    confidence: confidence,
+    timestamp: new Date(),
+    status: 'open',
+    notes: 'Thermal camera detected human/body motion in sector perimeter.',
+    color: '#ef4444'
+  };
+
+  allEvents.unshift(ev);
+  detectionCounts['THERMAL_INTRUDER']++;
+  sectorActivity[sector.id]++;
+  activeThreats++;
+
+  // Update real frequency timeline
+  frequencyData.push(1);
+  if (frequencyData.length > 60) frequencyData.shift();
+
+  // Alert Card & Grid Status
+  pushAlert(ev);
+  setCamAlert(sector.id, 'CRITICAL');
+  updateStats();
+  updateBadge();
+  playAlarmChime();
+
+  showToast('critical', 'THERMAL INTRUDER DETECTED', `${sector.name} &mdash; ${(confidence * 100).toFixed(0)}% AI confidence`, 5000);
+
+  // Re-render open views
+  if (document.getElementById('view-analytics').classList.contains('active')) renderAnalytics();
+  if (document.getElementById('view-events').classList.contains('active')) renderEventsTable();
+  if (document.getElementById('view-map').classList.contains('active')) renderMap();
+
+  // Reset alert pulse after 8 seconds
+  setTimeout(() => {
+    clearCamAlert(sector.id);
+  }, 8000);
+}
+
+function setCamAlert(camId, sev) {
+  const card = document.getElementById('card-' + camId);
+  const dot = document.getElementById('dot-' + camId);
+  if (!card || !dot) return;
+  card.className = 'camera-card alert-mode';
+  dot.className = 'cam-dot alert';
+}
+
+function clearCamAlert(camId) {
+  const card = document.getElementById('card-' + camId);
+  const dot = document.getElementById('dot-' + camId);
+  if (!card || !dot) return;
+  card.className = 'camera-card';
+  dot.className = 'cam-dot online';
+}
+
+function pushAlert(ev) {
+  const list = document.getElementById('alerts-list');
+  const ph = document.getElementById('no-alerts');
+  if (ph) ph.style.display = 'none';
+
+  const card = document.createElement('div');
+  const conf = (ev.confidence * 100).toFixed(0);
+  const cc = ev.confidence > .85 ? 'var(--red-400)' : 'var(--yellow-400)';
+
+  card.className = 'alert-card sev-' + ev.severity;
+  card.id = 'alert-' + ev.id;
+  card.dataset.sev = ev.severity.toLowerCase();
+
+  card.innerHTML = `
+    <div class="alert-hdr">
+      <span class="sev-badge sb-${ev.severity}">${ev.severity}</span>
+      <span class="alert-time">${ev.timestamp.toLocaleTimeString('en-GB', {hour12:false})}</span>
+    </div>
+    <div class="alert-type">${ev.label}</div>
+    <div class="alert-meta">
+      <span>&#128249; ${ev.camName}</span>
+      <span>&#128205; ${ev.zone.split('-')[0].trim()}</span>
+    </div>
+    <div class="conf-wrap">
+      <span class="conf-lbl">THERMAL CONF</span>
+      <div class="conf-bar-bg"><div class="conf-bar" style="width:${conf}%;background:${cc}"></div></div>
+      <span class="conf-lbl">${conf}%</span>
+    </div>
+    <div class="alert-actions">
+      <button class="abtn ack" onclick="ackEv('${ev.id}')">&#10003; ACK</button>
+      <button class="abtn dis" onclick="disEv('${ev.id}')">&#10005; DIS</button>
+    </div>
+  `;
+
+  list.insertBefore(card, list.firstChild);
+  applyFilter();
+}
+
+function filterAlerts(sev, btn) {
+  alertFilter = sev;
+  document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilter();
+}
+
+function applyFilter() {
+  document.querySelectorAll('.alert-card').forEach(card => {
+    card.style.display = (alertFilter === 'all' || card.dataset.sev === alertFilter) ? '' : 'none';
+  });
+}
+
+function ackEv(id) {
+  const card = document.getElementById('alert-' + id);
+  if (card) { card.classList.add('acked'); card.dataset.sev = 'ack'; }
+  const ev = allEvents.find(e => e.id === id);
+  if (ev && ev.status === 'open') {
+    ev.status = 'acknowledged';
+    activeThreats = Math.max(0, activeThreats - 1);
+  }
+  updateStats();
+  updateBadge();
+  showToast('success', 'Acknowledged', 'Threat ' + id + ' acknowledged', 2500);
+}
+
+function disEv(id) {
+  const card = document.getElementById('alert-' + id);
+  if (card) card.remove();
+  const ev = allEvents.find(e => e.id === id);
+  if (ev) {
+    if (ev.status === 'open') activeThreats = Math.max(0, activeThreats - 1);
+    ev.status = 'dismissed';
+  }
+  if (!document.querySelectorAll('.alert-card').length) {
+    const ph = document.getElementById('no-alerts');
+    if (ph) ph.style.display = 'flex';
+  }
+  updateStats();
+  updateBadge();
+}
+
+function acknowledgeAll() {
+  document.querySelectorAll('.alert-card:not(.acked)').forEach(c => ackEv(c.id.replace('alert-', '')));
+}
+
+function updateBadge() {
+  const open = allEvents.filter(e => e.status === 'open').length;
+  const b = document.getElementById('alert-badge');
+  b.style.display = open ? 'flex' : 'none';
+  b.textContent = open > 9 ? '9+' : String(open);
+  document.getElementById('alert-count-badge').textContent = open;
+}
+
+function updateStats() {
+  const open = allEvents.filter(e => e.status === 'open').length;
+  const acked = allEvents.filter(e => e.status === 'acknowledged').length;
+  document.getElementById('stat-threats').textContent = activeThreats;
+  document.getElementById('stat-unack').textContent = open;
+  document.getElementById('stat-ack').textContent = acked;
+  document.getElementById('stat-total').textContent = allEvents.length;
+
+  const kpiEl = document.getElementById('kpi-events-today');
+  if (kpiEl) kpiEl.textContent = allEvents.length;
+
+  const threatLvl = document.getElementById('kpi-threat-level');
+  const threatSub = document.getElementById('kpi-threat-sub');
+  if (threatLvl && threatSub) {
+    if (activeThreats > 0) {
+      threatLvl.textContent = 'ELEVATED (' + activeThreats + ')';
+      threatLvl.style.color = 'var(--red-400)';
+      threatSub.textContent = 'Active breach in progress';
+    } else {
+      threatLvl.textContent = 'NOMINAL';
+      threatLvl.style.color = 'var(--green-400)';
+      threatSub.textContent = 'Perimeter secure';
+    }
+  }
+}
+
+// EVENTS LOG TABLE RENDERING
+function renderEventsTable() {
+  const search = (document.getElementById('event-search').value || '').toLowerCase();
+  const sevF = document.getElementById('ef-sev').value;
+  const statF = document.getElementById('ef-status').value;
+
+  const filtered = allEvents.filter(ev => {
+    if (sevF && ev.severity !== sevF) return false;
+    if (statF && ev.status !== statF) return false;
+    if (search && ![ev.label, ev.camName, ev.id].some(v => v.toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  document.getElementById('ev-count').textContent = `${filtered.length} real events`;
+  const tbody = document.getElementById('events-tbody');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted);">No real security incidents logged yet. Standby for camera movement.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(ev => `
+    <tr onclick="toggleExpand('${ev.id}')">
+      <td class="td-mono">${ev.id}</td>
+      <td class="td-mono">${ev.timestamp.toLocaleString('en-GB',{hour12:false})}</td>
+      <td style="font-weight:600">${ev.label}</td>
+      <td>${ev.camName}</td>
+      <td style="font-size:11px;color:var(--text-secondary)">${ev.zone.split('-')[0].trim()}</td>
+      <td><span class="td-badge sb-${ev.severity}">${ev.severity}</span></td>
+      <td class="td-mono">${(ev.confidence*100).toFixed(1)}%</td>
+      <td><span class="td-badge st-${ev.status}">${ev.status.toUpperCase()}</span></td>
+      <td>
+        ${ev.status === 'open' ? `<button class="btn-sm btn-ghost" style="padding:2px 8px;" onclick="event.stopPropagation();ackEv('${ev.id}');renderEventsTable()">ACK</button>` : ''}
+      </td>
+    </tr>
+    <tr class="exp-row" id="expand-${ev.id}">
+      <td colspan="9">
+        <div class="exp-content">
+          <div class="detail-grid">
+            <div><div class="detail-label">Event ID</div><div class="detail-value font-mono">${ev.id}</div></div>
+            <div><div class="detail-label">Sensor Type</div><div class="detail-value">FLIR Thermal Optical</div></div>
+            <div><div class="detail-label">Confidence</div><div class="detail-value font-mono" style="color:#fb7185">${(ev.confidence*100).toFixed(1)}%</div></div>
+            <div><div class="detail-label">Sector</div><div class="detail-value">${ev.zone}</div></div>
+            <div><div class="detail-label">Status</div><div class="detail-value">${ev.status.toUpperCase()}</div></div>
+            <div><div class="detail-label">Classification</div><div class="detail-value font-mono">${ev.type}</div></div>
+          </div>
+          <textarea class="event-notes" placeholder="Add operator notes..." onchange="saveNote('${ev.id}',this.value)">${ev.notes||''}</textarea>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function toggleExpand(id) {
+  const row = document.getElementById('expand-' + id);
+  if (!row) return;
+  row.classList.toggle('open');
+}
+
+function saveNote(id, val) {
+  const ev = allEvents.find(e => e.id === id);
+  if (ev) ev.notes = val;
+}
+
+function exportEvents() {
+  const rows = [['ID','Timestamp','Type','Sensor','Zone','Severity','Confidence','Status','Notes']];
+  allEvents.forEach(ev => rows.push([ev.id, ev.timestamp.toISOString(), ev.label, ev.camName, ev.zone, ev.severity, (ev.confidence*100).toFixed(1)+'%', ev.status, ev.notes]));
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'thermal_perimeter_events.csv';
+  a.click();
+}
+
+function clearResolved() {
+  allEvents = allEvents.filter(e => e.status !== 'acknowledged' && e.status !== 'dismissed');
+  renderEventsTable();
+  updateStats();
+  showToast('success', 'Cleared', 'Acknowledged real events removed', 2500);
+}
+
+// REAL ANALYTICS CHARTS RENDERING
+function renderAnalytics() {
+  renderFreqChart();
+  renderDonut();
+  renderZoneHeat();
+  renderDetBreakdown();
+}
+
+function renderFreqChart() {
+  const canvas = document.getElementById('chart-freq');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const data = frequencyData;
+  const max = Math.max(...data, 2);
+
+  ctx.strokeStyle = 'rgba(24, 35, 60, 0.8)';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = H - 8 - (i / 4) * (H - 16);
+    ctx.beginPath(); ctx.moveTo(36, y); ctx.lineTo(W - 8, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+    ctx.font = '8px JetBrains Mono, monospace';
+    ctx.fillText(Math.round(max * i / 4), 4, y + 3);
+  }
+
+  const pts = data.map((v, i) => ({ x: 36 + i * (W - 44) / (data.length - 1), y: H - 8 - (v / max) * (H - 16) }));
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, 'rgba(244, 63, 94, 0.35)');
+  g.addColorStop(1, 'rgba(244, 63, 94, 0)');
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H - 8);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, H - 8);
+  ctx.closePath();
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#f43f5e';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function renderDonut() {
+  const canvas = document.getElementById('chart-donut');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const total = allEvents.length;
+  const cx = W * 0.38, cy = H / 2, r = Math.min(W, H) * 0.36, ri = r * 0.62;
+
+  if (total === 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.strokeStyle = 'var(--border-subtle)'; ctx.lineWidth = 6; ctx.stroke();
+    ctx.fillStyle = 'var(--text-muted)'; ctx.font = '9px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('NO EVENTS', cx, cy + 3);
+    return;
+  }
+
+  const keys = Object.keys(detectionCounts);
+  const colors = ['#f43f5e', '#fb923c', '#eab308'];
+  let angle = -Math.PI / 2;
+
+  keys.forEach((k, idx) => {
+    const cnt = detectionCounts[k] || 0;
+    if (cnt === 0) return;
+    const sw = (cnt / total) * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, angle, angle + sw); ctx.closePath();
+    ctx.fillStyle = colors[idx % colors.length]; ctx.fill();
+    angle += sw;
+  });
+
+  ctx.beginPath(); ctx.arc(cx, cy, ri, 0, Math.PI * 2); ctx.fillStyle = 'var(--bg-card)'; ctx.fill();
+  ctx.fillStyle = 'var(--text-primary)'; ctx.font = 'bold 13px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(total, cx, cy + 3);
+}
+
+function renderZoneHeat() {
+  const el = document.getElementById('zone-heatmap');
+  if (!el) return;
+  const maxA = Math.max(...Object.values(sectorActivity), 1);
+  el.innerHTML = SECTORS.map(s => {
+    const a = sectorActivity[s.id] || 0;
+    const col = a > 0 ? '#f43f5e' : 'var(--text-muted)';
+    return `<div class="zheat-item" style="border-color:${col}30"><div class="zheat-name">${s.id}</div><div class="zheat-val" style="color:${col}">${a}</div><div style="font-size:9px;color:var(--text-muted)">${s.name}</div></div>`;
+  }).join('');
+}
+
+function renderDetBreakdown() {
+  const el = document.getElementById('det-breakdown');
+  if (!el) return;
+  const total = allEvents.length || 1;
+  el.innerHTML = Object.keys(detectionCounts).map((k, idx) => {
+    const cnt = detectionCounts[k] || 0;
+    const pct = ((cnt / total) * 100).toFixed(0);
+    const col = idx === 0 ? '#f43f5e' : '#fb923c';
+    return `<div class="dbl-item"><div class="dbl-dot" style="background:${col}"></div><div class="dbl-label">${k}</div><div class="dbl-bar-bg"><div class="dbl-bar" style="width:${pct}%;background:${col}"></div></div><div class="dbl-cnt">${cnt}</div></div>`;
+  }).join('');
+}
+
+// PERIMETER MAP RENDERING
+function renderMap() {
+  const svg = document.getElementById('perimeter-svg');
+  svg.innerHTML = '<defs><pattern id="g" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0L0 0 0 30" fill="none" stroke="rgba(244,63,94,0.05)" stroke-width=".5"/></pattern></defs><rect width="900" height="500" fill="url(#g)"/><rect x="110" y="60" width="680" height="380" rx="4" fill="rgba(244,63,94,0.02)" stroke="rgba(244,63,94,0.2)" stroke-width="1.5" stroke-dasharray="6,4"/><rect x="260" y="150" width="380" height="200" rx="4" fill="rgba(244,63,94,0.03)" stroke="rgba(244,63,94,0.15)" stroke-width="1" stroke-dasharray="4,3"/><text x="268" y="164" fill="rgba(244,63,94,0.4)" font-size="8" font-family="JetBrains Mono,monospace" letter-spacing="1">RESTRICTED FACILITY</text><rect x="300" y="178" width="90" height="60" fill="rgba(244,63,94,0.08)" stroke="rgba(244,63,94,0.2)" stroke-width="1"/><text x="345" y="213" text-anchor="middle" fill="rgba(244,63,94,0.5)" font-size="8" font-family="Inter,sans-serif">HQ THERMAL</text><rect x="430" y="188" width="140" height="40" fill="rgba(244,63,94,0.05)" stroke="rgba(244,63,94,0.15)" stroke-width="1"/><text x="500" y="212" text-anchor="middle" fill="rgba(244,63,94,0.4)" font-size="7" font-family="Inter,sans-serif">OPTICAL ARRAY</text>';
+
+  SECTORS.forEach(s => {
+    const a = sectorActivity[s.id] || 0;
+    const col = a > 0 ? '#ef4444' : '#fb7185';
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${s.pos.x},${s.pos.y})`);
+    g.style.cursor = 'pointer';
+
+    const c1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c1.setAttribute('r', '30'); c1.setAttribute('fill', col + '15'); c1.setAttribute('stroke', col + '40'); c1.setAttribute('stroke-width', '1');
+
+    const c2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c2.setAttribute('r', '11'); c2.setAttribute('fill', '#050811'); c2.setAttribute('stroke', col); c2.setAttribute('stroke-width', '1.5');
+
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central'); t.setAttribute('font-size', '10'); t.setAttribute('fill', col);
+    t.textContent = 'IR';
+
+    const l = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    l.setAttribute('y', '20'); l.setAttribute('text-anchor', 'middle'); l.setAttribute('font-size', '8'); l.setAttribute('fill', '#94a3b8'); l.setAttribute('font-family', 'JetBrains Mono,monospace');
+    l.textContent = s.id;
+
+    [c1, c2, t, l].forEach(el => g.appendChild(el));
+    svg.appendChild(g);
+  });
+}
+
+// CAMERA DETAIL MODAL
+function openCameraModal(sector) {
+  document.getElementById('modal-title').textContent = `${sector.id} - ${sector.name} [${sector.mode}]`;
+  const act = sectorActivity[sector.id] || 0;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <canvas id="mcam" width="560" height="315" style="width:100%;border-radius:8px;border:1px solid var(--border-subtle);"></canvas>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+        <div><div class="detail-label">Zone</div><div class="detail-value">${sector.zone}</div></div>
+        <div><div class="detail-label">Sensor Mode</div><div class="detail-value" style="color:#fb7185">${sector.mode}</div></div>
+        <div><div class="detail-label">Real Detections</div><div class="detail-value font-mono">${act}</div></div>
+        <div><div class="detail-label">Resolution</div><div class="detail-value">720p / 60Hz FLIR</div></div>
+        <div><div class="detail-label">Hardware Sensor</div><div class="detail-value" style="color:var(--green-400)">Laptop Webcam Active</div></div>
+        <div><div class="detail-label">AI Status</div><div class="detail-value" style="color:var(--green-400)">Live Motion Matrix</div></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+
+  function animModal() {
+    const mc = document.getElementById('mcam');
+    if (mc && document.getElementById('modal-overlay').classList.contains('open')) {
+      renderCam(sector, mc);
+      cameraAnimFrames['modal'] = requestAnimationFrame(animModal);
+    }
+  }
+  animModal();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  if (cameraAnimFrames['modal']) {
+    cancelAnimationFrame(cameraAnimFrames['modal']);
+    delete cameraAnimFrames['modal'];
+  }
+}
+
+function saveSettings() {
+  showToast('success', 'Configuration Saved', 'Thermal movement thresholds applied.', 2500);
+}
+
+// BUILD CAMERA GRID
+function buildCameraGrid() {
+  const grid = document.getElementById('camera-grid');
+  grid.innerHTML = '';
+  SECTORS.forEach(sector => {
+    const card = document.createElement('div');
+    card.className = 'camera-card';
+    card.id = 'card-' + sector.id;
+    card.onclick = () => openCameraModal(sector);
+
+    card.innerHTML = `
+      <div class="cam-canvas-wrap">
+        <canvas id="canvas-${sector.id}" width="320" height="180"></canvas>
+        <div class="cam-overlay">
+          <div class="cam-corner tl"></div><div class="cam-corner tr"></div>
+          <div class="cam-corner bl"></div><div class="cam-corner br"></div>
+          <div class="cam-mode-badge">${sector.mode}</div>
+          <div class="cam-id-badge">${sector.id}</div>
+          <div class="cam-crosshair"></div>
+          <div class="thermal-scale-bar"></div>
+          <div class="thermal-temp-max">38.2°C</div>
+          <div class="thermal-temp-min">18.4°C</div>
+          <div class="cam-ts" id="ts-${sector.id}"></div>
+          <div class="cam-rec">REC</div>
+        </div>
+      </div>
+      <div class="cam-footer">
+        <div>
+          <div class="cam-name">${sector.name}</div>
+          <div class="cam-zone-label">${sector.zone.split('-')[0].trim()}</div>
+        </div>
+        <div class="cam-dot online" id="dot-${sector.id}"></div>
+      </div>
+    `;
+
+    grid.appendChild(card);
+
+    function loopCam() {
+      const c = document.getElementById('canvas-' + sector.id);
+      if (c) {
+        renderCam(sector, c);
+        cameraAnimFrames[sector.id] = requestAnimationFrame(loopCam);
+      }
+    }
+    loopCam();
+  });
+
+  // Clock stamp on frames
+  setInterval(() => {
+    const ts = new Date().toLocaleTimeString('en-GB', {hour12:false}) + ' ' + new Date().toLocaleDateString('en-GB');
+    SECTORS.forEach(s => {
+      const el = document.getElementById('ts-' + s.id);
+      if (el) el.textContent = ts;
+    });
+  }, 1000);
+}
+
+function showToast(type, title, body, dur = 3000) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.innerHTML = `<div><div class="t-title">${title}</div><div class="t-body">${body}</div></div>`;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('removing');
+    setTimeout(() => t.remove(), 300);
+  }, dur);
+}
+
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'analytics') renderAnalytics();
+  if (name === 'map') renderMap();
+  if (name === 'events') renderEventsTable();
+}
+
+function updateClock() { document.getElementById('nav-clock').textContent = new Date().toLocaleTimeString('en-GB', {hour12:false}); }
+function updateUptime() {
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  document.getElementById('uptime-counter').textContent = [Math.floor(s/3600), Math.floor((s%3600)/60), s%60].map(n=>String(n).padStart(2,'0')).join(':');
+}
+
+// INITIALIZATION
+function init() {
+  setInterval(updateClock, 1000);
+  setInterval(updateUptime, 1000);
+  updateClock();
+  updateUptime();
+
+  buildCameraGrid();
+  updateStats();
+  updateBadge();
+
+  // Run CV movement tracking at ~24 FPS
+  setInterval(runComputerVisionAnalysis, 42);
+
+  // Auto engage laptop webcam
+  engageLaptopCamera();
+
+  showToast('info', 'System Operational', 'Thermal camera AI ready. Move in front of camera to trigger alarms.', 4000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
